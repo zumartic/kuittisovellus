@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- Receipt paper -->
+  <rect x="140" y="70" width="232" height="320" rx="12" fill="#e8e8e8" opacity="0.95"/>
+  <rect x="140" y="350" width="232" height="30" rx="0" fill="#e8e8e8" opacity="0.95"/>
+  <!-- Zigzag bottom edge -->
+  <path d="M140 380 L156 395 L172 380 L188 395 L204 380 L220 395 L236 380 L252 395 L268 380 L284 395 L300 380 L316 395 L332 380 L348 395 L356 380 L372 388 L372 380" fill="#e8e8e8" opacity="0.95"/>
+  <!-- Receipt lines -->
+  <rect x="175" y="115" width="162" height="8" rx="4" fill="#b0b0b0" opacity="0.6"/>
+  <rect x="175" y="145" width="130" height="6" rx="3" fill="#c8c8c8" opacity="0.5"/>
+  <rect x="175" y="168" width="145" height="6" rx="3" fill="#c8c8c8" opacity="0.5"/>
+  <rect x="175" y="191" width="110" height="6" rx="3" fill="#c8c8c8" opacity="0.5"/>
+  <rect x="175" y="214" width="150" height="6" rx="3" fill="#c8c8c8" opacity="0.5"/>
+  <rect x="175" y="245" width="162" height="2" rx="1" fill="#d0d0d0" opacity="0.4"/>
+  <rect x="175" y="265" width="100" height="8" rx="4" fill="#b0b0b0" opacity="0.6"/>
+  <rect x="295" y="265" width="42" height="8" rx="4" fill="#b0b0b0" opacity="0.6"/>
+  <!-- Camera lens / scan indicator -->
+  <circle cx="340" cy="430" r="52" fill="none" stroke="#4a9eff" stroke-width="6" opacity="0.9"/>
+  <circle cx="340" cy="430" r="34" fill="none" stroke="#4a9eff" stroke-width="3" opacity="0.6"/>
+  <circle cx="340" cy="430" r="18" fill="#4a9eff" opacity="0.8"/>
+  <!-- Corner markers -->
+  <path d="M115 95 L115 70 L140 70" fill="none" stroke="#4a9eff" stroke-width="6" stroke-linecap="round"/>
+  <path d="M397 70 L372 70 L372 95" fill="none" stroke="#4a9eff" stroke-width="6" stroke-linecap="round" transform="translate(0,0)"/>
+  <path d="M115 365 L115 390 L140 390" fill="none" stroke="#4a9eff" stroke-width="6" stroke-linecap="round"/>
+  <path d="M372 365 L372 390 L397 390" fill="none" stroke="#4a9eff" stroke-width="6" stroke-linecap="round"/>
+</svg>

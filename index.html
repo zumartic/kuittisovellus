@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Kuittiskanneri</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Loading overlay for OpenCV.js -->
+    <div id="loading-overlay" class="overlay">
+        <div class="loader-content">
+            <div class="spinner"></div>
+            <p id="loading-text">Ladataan sovellusta...</p>
+        </div>
+    </div>
+
+    <!-- Processing overlay -->
+    <div id="processing-overlay" class="overlay hidden">
+        <div class="loader-content">
+            <div class="spinner"></div>
+            <p>Käsitellään kuvaa...</p>
+        </div>
+    </div>
+
+    <!-- VIEW 1: Receipt List (main view) -->
+    <div id="view-list" class="view">
+        <header class="app-header">
+            <h1>Kuittiskanneri</h1>
+            <button id="btn-settings" class="icon-btn" aria-label="Asetukset" title="Asetukset">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Settings panel (collapsible) -->
+        <div id="settings-panel" class="settings-panel hidden">
+            <label for="email-input">Vastaanottajan sähköposti</label>
+            <input type="email" id="email-input" placeholder="nimi@esimerkki.fi" autocomplete="email">
+        </div>
+
+        <!-- Receipt count -->
+        <div id="receipt-count" class="receipt-count hidden">
+            <span id="count-text">0 kuittia</span>
+        </div>
+
+        <!-- Receipt grid -->
+        <div id="receipt-grid" class="receipt-grid"></div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="empty-state">
+            <svg viewBox="0 0 80 80" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                <rect x="10" y="5" width="40" height="55" rx="3"/>
+                <line x1="18" y1="18" x2="42" y2="18"/>
+                <line x1="18" y1="26" x2="42" y2="26"/>
+                <line x1="18" y1="34" x2="35" y2="34"/>
+                <path d="M45 35 L65 55 L75 45" stroke-width="2"/>
+            </svg>
+            <p>Ei kuitteja vielä</p>
+            <p class="hint">Kuvaa kuitti tai valitse tiedosto</p>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="action-bar">
+            <button id="btn-camera" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </svg>
+                Kuvaa kuitti
+            </button>
+            <button id="btn-file" class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Valitse tiedosto
+            </button>
+            <button id="btn-send" class="btn btn-accent" disabled>
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"/>
+                </svg>
+                Jaa kuitit
+            </button>
+        </div>
+
+        <!-- Hidden file inputs -->
+        <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden-input">
+        <input type="file" id="file-input" accept="image/*,application/pdf" multiple class="hidden-input">
+    </div>
+
+    <!-- VIEW 2: Crop / Edge Detection -->
+    <div id="view-crop" class="view hidden">
+        <header class="app-header">
+            <button id="btn-crop-back" class="icon-btn" aria-label="Takaisin">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+            <h1>Rajaa kuitti</h1>
+            <div style="width:40px"></div>
+        </header>
+
+        <div class="crop-container">
+            <canvas id="crop-canvas"></canvas>
+        </div>
+
+        <div class="crop-actions">
+            <button id="btn-crop-retry" class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                </svg>
+                Kuvaa uudelleen
+            </button>
+            <button id="btn-crop-accept" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Hyväksy
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 3: Share / Send -->
+    <div id="view-share" class="view hidden">
+        <header class="app-header">
+            <button id="btn-share-back" class="icon-btn" aria-label="Takaisin">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+            <h1>Lähetä kuitit</h1>
+            <div style="width:40px"></div>
+        </header>
+
+        <div class="share-content">
+            <div class="share-field">
+                <label for="share-email">Vastaanottaja</label>
+                <input type="email" id="share-email" placeholder="nimi@esimerkki.fi" readonly>
+                <p class="share-hint">Sähköpostiosoite näytetään muistutuksena. Syötä se jakovalikossa avautuvaan sovellukseen.</p>
+            </div>
+            <div class="share-field">
+                <label for="share-subject">Otsikko</label>
+                <input type="text" id="share-subject">
+            </div>
+
+            <div class="share-preview">
+                <h3>Liitteet <span id="share-file-count"></span></h3>
+                <div id="share-preview-grid" class="receipt-grid small"></div>
+            </div>
+        </div>
+
+        <div class="share-actions">
+            <button id="btn-share-send" class="btn btn-accent btn-large">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Jaa
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- OpenCV.js loaded async -->
+    <script async src="https://docs.opencv.org/4.9.0/opencv.js" id="opencv-script"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/share.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
