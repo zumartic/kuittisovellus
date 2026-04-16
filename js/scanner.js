@@ -260,20 +260,17 @@ const Scanner = (function () {
 
         if (_corners.length !== 4) return;
 
-        // Semi-transparent overlay outside the selection
+        // Semi-transparent overlay only outside the selection (evenodd: inner area stays clear)
         _ctx.save();
-        _ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        _ctx.fillRect(0, 0, _canvas.width, _canvas.height);
-
-        // Cut out the selection area
-        _ctx.globalCompositeOperation = 'destination-out';
         _ctx.beginPath();
+        _ctx.rect(0, 0, _canvas.width, _canvas.height);
         _ctx.moveTo(_corners[0].x, _corners[0].y);
-        for (let i = 1; i < 4; i++) {
-            _ctx.lineTo(_corners[i].x, _corners[i].y);
-        }
+        _ctx.lineTo(_corners[1].x, _corners[1].y);
+        _ctx.lineTo(_corners[2].x, _corners[2].y);
+        _ctx.lineTo(_corners[3].x, _corners[3].y);
         _ctx.closePath();
-        _ctx.fill();
+        _ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        _ctx.fill('evenodd');
         _ctx.restore();
 
         // Draw selection lines
