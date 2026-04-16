@@ -1,7 +1,7 @@
 /* ========================================
-   Kuittiskanneri – Web Share API
-   Converts receipts to File objects and
-   shares via navigator.share()
+   Kuittiskanneri – Email Share
+   Converts receipts to File objects,
+   downloads them, and opens mailto: link
    ======================================== */
 
 const ShareUtil = (function () {
@@ -12,29 +12,43 @@ const ShareUtil = (function () {
      * @param {Array} receipts - [{ type: 'image', data: base64 } | { type: 'pdf', file: File, name: string }]
      * @param {string} subject - Share title / email subject
      */
-    async function shareReceipts(receipts, subject) {
+    async function shareReceipts(receipts, subject, email) {
         if (!receipts.length) {
-            throw new Error('Ei kuitteja jaettavaksi');
+            throw new Error('Ei kuitteja lähetettäväksi');
         }
 
         const files = await buildFileList(receipts);
 
-        // Check Web Share API support
-        if (!navigator.canShare) {
-            throw new Error('Selaimesi ei tue tiedostojen jakamista. Kokeile Chrome- tai Safari-mobiiliselainta.');
+        // Download all files to the device
+        for (let i = 0; i < files.length; i++) {
+            downloadFile(files[i]);
+            if (i < files.length - 1) {
+                await new Promise(r => setTimeout(r, 300));
+            }
         }
 
-        const shareData = {
-            title: subject,
-            text: '',
-            files: files,
-        };
+        // Open email compose after a short delay
+        await new Promise(r => setTimeout(r, 500));
+        const body = 'Liitteenä ' + files.length + (files.length === 1 ? ' kuitti' : ' kuittia') + '.\nLiitä ladatut tiedostot tähän sähköpostiin.';
+        const mailto = 'mailto:' + encodeURIComponent(email)
+            + '?subject=' + encodeURIComponent(subject)
+            + '&body=' + encodeURIComponent(body);
+        window.location.href = mailto;
+    }
 
-        if (!navigator.canShare(shareData)) {
-            throw new Error('Selaimesi ei pysty jakamaan näitä tiedostoja.');
-        }
-
-        await navigator.share(shareData);
+    /**
+     * Download a File object to the user's device
+     */
+    function downloadFile(file) {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     /**
@@ -74,7 +88,7 @@ const ShareUtil = (function () {
      * Check if Web Share with files is supported
      */
     function isSupported() {
-        return !!(navigator.canShare && navigator.share);
+        return true;
     }
 
     return {

@@ -140,6 +140,13 @@
         // Save email on change
         els.emailInput.addEventListener('input', saveEmail);
 
+        // Sync share email with settings
+        els.shareEmail.addEventListener('input', () => {
+            const val = els.shareEmail.value.trim();
+            localStorage.setItem('receipt_app_email', val);
+            els.emailInput.value = val;
+        });
+
         // Camera button
         els.btnCamera.addEventListener('click', () => els.cameraInput.click());
         els.cameraInput.addEventListener('change', handleCameraInput);
@@ -263,13 +270,11 @@
 
         if (typeof Scanner !== 'undefined' && Scanner.getCurrentCorners) {
             const corners = Scanner.getCurrentCorners();
-            if (window._opencvReady) {
-                croppedDataUrl = Scanner.cropReceipt(
-                    state.currentOriginalImage,
-                    canvas,
-                    corners
-                );
-            }
+            croppedDataUrl = Scanner.cropReceipt(
+                state.currentOriginalImage,
+                canvas,
+                corners
+            );
         }
 
         if (!croppedDataUrl) {
@@ -395,21 +400,27 @@
 
     // --- Handle share ---
     async function handleShare() {
+        const email = els.shareEmail.value.trim();
         const subject = els.shareSubject.value.trim() || 'Kuitit';
 
+        if (!email) {
+            showToast('Syötä vastaanottajan sähköpostiosoite', 'error');
+            return;
+        }
+
+        // Save email for next time
+        localStorage.setItem('receipt_app_email', email);
+        els.emailInput.value = email;
+
         try {
-            await ShareUtil.shareReceipts(state.receipts, subject);
-            showToast('Jaettu onnistuneesti!', 'success');
-            // Clear after successful share
+            await ShareUtil.shareReceipts(state.receipts, subject, email);
+            showToast('Tiedostot ladattu – liitä ne sähköpostiin!', 'success');
+            // Clear after successful send
             state.receipts = [];
             switchView('list');
             renderReceiptList();
         } catch (err) {
-            if (err.name === 'AbortError') {
-                // User cancelled share – do nothing
-                return;
-            }
-            showToast(err.message || 'Jakaminen epäonnistui', 'error');
+            showToast(err.message || 'Lähetys epäonnistui', 'error');
         }
     }
 

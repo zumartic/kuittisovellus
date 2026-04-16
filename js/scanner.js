@@ -69,7 +69,17 @@ const Scanner = (function () {
                         });
                     }
                     approx.delete();
-                    return orderCorners(pts);
+                    // Convert to axis-aligned bounding rectangle
+                    const minX = Math.min(...pts.map(p => p.x));
+                    const minY = Math.min(...pts.map(p => p.y));
+                    const maxX = Math.max(...pts.map(p => p.x));
+                    const maxY = Math.max(...pts.map(p => p.y));
+                    return [
+                        { x: minX, y: minY },
+                        { x: maxX, y: minY },
+                        { x: maxX, y: maxY },
+                        { x: minX, y: maxY },
+                    ];
                 }
                 approx.delete();
             }
@@ -108,65 +118,25 @@ const Scanner = (function () {
         return [tl, tr, br, bl];
     }
 
-    // --- Perspective Crop ---
+    // --- Rectangular Crop ---
     function cropReceipt(originalImage, canvas, corners) {
-        // Draw original image to a temp canvas at full resolution
-        const tempCanvas = document.createElement('canvas');
-        const w = originalImage.naturalWidth;
-        const h = originalImage.naturalHeight;
-        tempCanvas.width = w;
-        tempCanvas.height = h;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(originalImage, 0, 0, w, h);
+        const scaleX = originalImage.naturalWidth / canvas.width;
+        const scaleY = originalImage.naturalHeight / canvas.height;
 
-        // Scale corners from display coords to full image coords
-        const scaleX = w / canvas.width;
-        const scaleY = h / canvas.height;
+        const xs = corners.map(c => c.x);
+        const ys = corners.map(c => c.y);
+        const srcX = Math.round(Math.min(...xs) * scaleX);
+        const srcY = Math.round(Math.min(...ys) * scaleY);
+        const srcW = Math.round((Math.max(...xs) - Math.min(...xs)) * scaleX);
+        const srcH = Math.round((Math.max(...ys) - Math.min(...ys)) * scaleY);
 
-        const scaledCorners = corners.map((c) => ({
-            x: c.x * scaleX,
-            y: c.y * scaleY,
-        }));
+        if (srcW < 1 || srcH < 1) return null;
 
-        const src = cv.imread(tempCanvas);
-
-        // Calculate output dimensions from corners
-        const widthTop = dist(scaledCorners[0], scaledCorners[1]);
-        const widthBottom = dist(scaledCorners[3], scaledCorners[2]);
-        const heightLeft = dist(scaledCorners[0], scaledCorners[3]);
-        const heightRight = dist(scaledCorners[1], scaledCorners[2]);
-        const dstW = Math.round(Math.max(widthTop, widthBottom));
-        const dstH = Math.round(Math.max(heightLeft, heightRight));
-
-        const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
-            scaledCorners[0].x, scaledCorners[0].y,
-            scaledCorners[1].x, scaledCorners[1].y,
-            scaledCorners[2].x, scaledCorners[2].y,
-            scaledCorners[3].x, scaledCorners[3].y,
-        ]);
-        const dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
-            0, 0,
-            dstW, 0,
-            dstW, dstH,
-            0, dstH,
-        ]);
-
-        const M = cv.getPerspectiveTransform(srcPts, dstPts);
-        const dst = new cv.Mat();
-        cv.warpPerspective(src, dst, M, new cv.Size(dstW, dstH));
-
-        // Draw result to output canvas
         const outCanvas = document.createElement('canvas');
-        outCanvas.width = dstW;
-        outCanvas.height = dstH;
-        cv.imshow(outCanvas, dst);
-
-        // Cleanup
-        src.delete();
-        dst.delete();
-        M.delete();
-        srcPts.delete();
-        dstPts.delete();
+        outCanvas.width = srcW;
+        outCanvas.height = srcH;
+        const ctx = outCanvas.getContext('2d');
+        ctx.drawImage(originalImage, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
 
         return outCanvas.toDataURL('image/jpeg', 0.8);
     }
@@ -248,8 +218,32 @@ const Scanner = (function () {
             : getCanvasCoords(_canvas, e.clientX, e.clientY);
 
         // Clamp to canvas bounds
-        _corners[_draggingIdx].x = Math.max(0, Math.min(_canvas.width, pos.x));
-        _corners[_draggingIdx].y = Math.max(0, Math.min(_canvas.height, pos.y));
+        const x = Math.max(0, Math.min(_canvas.width, pos.x));
+        const y = Math.max(0, Math.min(_canvas.height, pos.y));
+
+        // Maintain rectangle shape: update adjacent corners
+        switch (_draggingIdx) {
+            case 0: // Top-left
+                _corners[0].x = x; _corners[0].y = y;
+                _corners[1].y = y;
+                _corners[3].x = x;
+                break;
+            case 1: // Top-right
+                _corners[1].x = x; _corners[1].y = y;
+                _corners[0].y = y;
+                _corners[2].x = x;
+                break;
+            case 2: // Bottom-right
+                _corners[2].x = x; _corners[2].y = y;
+                _corners[1].x = x;
+                _corners[3].y = y;
+                break;
+            case 3: // Bottom-left
+                _corners[3].x = x; _corners[3].y = y;
+                _corners[0].x = x;
+                _corners[2].y = y;
+                break;
+        }
 
         drawOverlay();
     }
